@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #c9d3b9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #quiz-container {
+      background-color: rgb(243, 238, 238);
+      border-radius: 8px;
+      padding: 20px;
+      width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: filter 0.3s ease-in-out;
+      position: absolute;
+    }
+
+    #question-container {
+      margin-bottom: 20px;
+    }
+
+    #question {
+      font-weight: bold;
+    }
+
+    button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      background-color: #5a5e5a;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #000000;
+    }
+
+    #navigation-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #score-card {
+      margin-top: 20px;
+      display: none;
+    }
+
+    #finish-btn {
+      background-color: #FF5722;
+    }
+
+    #finish-btn:hover {
+      background-color: #E64A19;
+    }
+
+    #next-btn:disabled {
+      background-color: #ddd;
+      cursor: not-allowed;
+    }
+
+    #options {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    input[type="radio"]:not(:checked) + span,
+    input[type="radio"]:checked + span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #5a5e5a;
+      display: inline-block;
+      margin-right: 10px;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="radio"]:checked + span {
+      background-color: #4CAF50;
+    }
+
+    #report-container {
+      margin-top: 20px;
+      display: none;
+      background-color: #f1f1f1;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      position: absolute;
+      text-align: center;
+    }
+
+    .attempted {
+      color: green;
+    }
+
+    .not-attempted {
+      color: red;
+    }
+
+    .Quiz {
+        text-align: center;
+        font-size: 30px;
+        color: #5a5e5a;
+    }
+
+    #next-btn {
+      width: 60px;
+    }
+
+    #report-btn {
+      background-color: #4CAF50;
+    }
+
+    #report-btn:hover {
+      background-color: #45a049;
+    }
+
+    #try-again-btn {
+      background-color: #FF5722;
+    }
+
+    #try-again-btn:hover {
+      background-color: #E64A19;
+    }
+
+    #quiz-container.blurred {
+      filter: blur(5px);
+    }
+
+    .qualified {
+      color: green;
+      font-weight: bold;
+    }
+
+    .disqualified {
+      color: red;
+      font-weight: bold;
+    }
+
+    .report-page {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+
+    @media (max-width: 600px) {
+      #quiz-container {
+        width: 90%;
+      }
+
+      button {
+        font-size: 14px;
+        padding: 8px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div id="quiz-container">
+    <h1 class="Quiz">Online Quiz</h1>
+    <div id="question-container">
+      <p id="question"></p>
+      <div id="options"></div>
+    </div>
+    <div id="navigation-buttons">
+      <button id="prev-btn" onclick="prevQuestion()" disabled>Previous</button>
+      <button id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+    </div>
+    <button id="finish-btn" onclick="finishQuiz()">Finish</button>
+    <div id="score-card">
+      <p>Your Score: <span id="score">0</span></p>
+    </div>
+    <div id="status-message"></div>
+    <button id="report-btn" onclick="showReport()" style="display: none; font-weight: bold;">Your Report</button>
+  </div>
+
+  <div id="report-container" class="report-page">
+    <p id="report-status" class="qualified">Status: Qualified</p>
+    <p>Time taken: <span id="time-taken"></span> seconds</p>
+    <p>Answers Attempted: <span id="attempted" class="attempted">0</span></p>
+    <p>Questions Not Attempted: <span id="not-attempted" class="not-attempted">0</span></p>
+    <p id="total-marks"></p>
+    <button id="try-again-btn" onclick="tryAgain()" style="font-weight: bold;">Try Again</button>
+  </div>
+
+  <script>
+    const questions = [
+      { question: "What is the correct way to declare a constant in C?", options: ["const int x;", "int x;", "const x int;", "x int const;"], correct: 0 },
+      { question: "Which operator is used to allocate memory dynamically in C?", options: ["malloc", "alloc", "new", "mallocx"], correct: 0 },
+      { question: "Which method is used to start a thread in Java?", options: ["start()", "run()", "begin()", "execute()"], correct: 0 },
+      { question: "What is the default value of a boolean variable in Java?", options: ["true", "false", "null", "0"], correct: 1 },
+      { question: "Which of the following is used to define a function in Python?", options: ["function", "def", "func", "define"], correct: 1 },
+      { question: "Which of the following is not a valid data type in Python?", options: ["int", "str", "float", "real"], correct: 3 },
+      { question: "Which property is used to change the background color in CSS?", options: ["bgcolor", "color", "background-color", "bgcolor-property"], correct: 2 },
+      { question: "How do you apply a border to a div in CSS?", options: ["border-style", "border-color", "border", "div-border"], correct: 2 },
+      { question: "Which of the following is the best way to search for an element in a sorted array?", options: ["Linear Search", "Binary Search", "Depth First Search", "Breadth First Search"], correct: 1 },
+      { question: "Which data structure is used to implement a recursive function?", options: ["Queue", "Stack", "Linked List", "Tree"], correct: 1 },
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let startTime = Date.now();
+    let answeredQuestions = 0;
+    let shuffledQuestions = [];
+
+    function shuffleQuestions() {
+      shuffledQuestions = [...questions];
+      for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+      }
+    }
+
+    function loadQuestion() {
+      const questionObj = shuffledQuestions[currentQuestion];
+      const questionText = (currentQuestion + 1) + ") " + questionObj.question;
+      document.getElementById("question").textContent = questionText;
+      const optionsContainer = document.getElementById("options");
+      optionsContainer.innerHTML = "";
+
+      questionObj.options.forEach((option, index) => {
+        const optionLabel = document.createElement("label");
+        const radioBtn = document.createElement("input");
+        radioBtn.type = "radio";
+        radioBtn.name = "option";
+        radioBtn.value = index;
+        radioBtn.onclick = () => selectAnswer(index);
+
+        const dotSpan = document.createElement("span");
+
+        optionLabel.appendChild(radioBtn);
+        optionLabel.appendChild(dotSpan);
+        optionLabel.appendChild(document.createTextNode(option));
+
+        optionsContainer.appendChild(optionLabel);
+
+        if (index === 0) {
+          radioBtn.focus();  // Focus on the first option when the question loads
+        }
+      });
+
+      updateNavigationButtons();
+    }
+
+    function updateNavigationButtons() {
+      document.getElementById("prev-btn").disabled = currentQuestion === 0;
+      document.getElementById("next-btn").style.display = currentQuestion < shuffledQuestions.length - 1 ? "inline-block" : "none";
+      document.getElementById("finish-btn").style.display = currentQuestion === shuffledQuestions.length - 1 ? "inline-block" : "none";
+    }
+
+    function selectAnswer(selectedIndex) {
+      const questionObj = shuffledQuestions[currentQuestion];
+      const radioBtns = document.querySelectorAll(`input[name="option"]`);
+      
+      radioBtns.forEach((radioBtn) => {
+        const span = radioBtn.nextElementSibling;
+        span.style.backgroundColor = "#5a5e5a"; // Reset to default
+      });
+
+      const selectedRadio = document.querySelector(`input[name="option"][value="${selectedIndex}"]`);
+      const selectedDot = selectedRadio.nextElementSibling;
+      selectedDot.style.backgroundColor = "#4CAF50"; // Highlight selected answer
+
+      if (selectedIndex === questionObj.correct) {
+        score++;
+      }
+
+      answeredQuestions++;
+      document.getElementById("score").textContent = score;
+
+      document.getElementById("next-btn").disabled = false;
+    }
+
+    function nextQuestion() {
+      const radioBtns = document.querySelectorAll('input[name="option"]');
+      const isAnyOptionSelected = Array.from(radioBtns).some(radioBtn => radioBtn.checked);
+
+      if (!isAnyOptionSelected) {
+        alert("Please select an answer before moving to the next question.");
+        return;
+      }
+
+      currentQuestion++;
+      loadQuestion();
+    }
+
+    function prevQuestion() {
+      currentQuestion--;
+      loadQuestion();
+    }
+
+    function finishQuiz() {
+      const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2); // Time in seconds
+      document.getElementById("score-card").style.display = "block";
+      document.getElementById("report-btn").style.display = "block";
+
+      document.getElementById("time-taken").textContent = timeTaken;
+
+      const notAttempted = shuffledQuestions.length - answeredQuestions;
+      document.getElementById("attempted").textContent = answeredQuestions;
+      document.getElementById("not-attempted").textContent = notAttempted;
+
+      const statusMessage = document.getElementById("report-status");
+      if (score >= 5) {
+        statusMessage.textContent = "Status: Qualified";
+        statusMessage.className = "qualified";
+      } else {
+        statusMessage.textContent = "Status: Disqualified";
+        statusMessage.className = "disqualified";
+      }
+
+      document.getElementById("total-marks").textContent = "Total Marks: " + score + " / " + shuffledQuestions.length;
+
+      document.getElementById("quiz-container").style.display = "none";
+      document.getElementById("report-container").style.display = "block";
+    }
+
+    function showReport() {
+      document.getElementById("quiz-container").style.display = "none";
+      document.getElementById("report-container").style.display = "block";
+    }
+
+    function tryAgain() {
+      score = 0;
+      currentQuestion = 0;
+      answeredQuestions = 0;
+      startTime = Date.now();
+
+      shuffleQuestions();
+      loadQuestion();
+
+      document.getElementById("quiz-container").style.display = "block";
+      document.getElementById("report-container").style.display = "none";
+      document.getElementById("score-card").style.display = "none";
+      document.getElementById("report-btn").style.display = "none";
+    }
+
+    window.onload = function() {
+      shuffleQuestions();
+      loadQuestion();
+    };
+  </script>
+</body>
+</html>
